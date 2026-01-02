@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmployerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVE
+}
+
+enum WorkerEvent {
+  HIRED
+  FIRED
+}
+
+model Employers {
+  id      String         @id @default(uuid())
+  name    String
+  status  EmployerStatus @default(ACTIVE)
+  jobs    Jobs[]
+  workers Workers[]      @relation("EmployerWorkers")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([name])
+}
+
+model Jobs {
+  id     String    @id @default(uuid())
+  status JobStatus @default(DRAFT)
+  name   String
+  salary Int
+
+  employerId String
+  owner      Employers @relation(fields: [employerId], references: [id])
+
+  workers Workers[] @relation("JobWorkers")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([employerId, status])
+}
+
+model Workers {
+  id     String @id @default(uuid())
+  name   String
+  salary Int
+
+  employerId String?
+  owner      Employers? @relation("EmployerWorkers", fields: [employerId], references: [id])
+
+  jobId String?
+  job   Jobs?   @relation("JobWorkers", fields: [jobId], references: [id])
+
+  history Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([salary])
+  @@index([employerId])
+  @@index([jobId])
+}
